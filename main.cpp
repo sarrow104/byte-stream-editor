@@ -8,7 +8,6 @@
 #include <sss/path.hpp>
 #include <sss/util/PostionThrow.hpp>
 
-#include "TCircleBuffer.hpp"
 #include "ByteStreamEditor.hpp"
 
 const char * rule_dir = "rule";
@@ -44,8 +43,6 @@ int main (int argc, char *argv[])
     try {
         (void) argc;
         (void) argv;
-
-        TCircleBuffer<char> cb(10);
 
         if (argc < 3) {
             help_msg();
