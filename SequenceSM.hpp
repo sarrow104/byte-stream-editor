@@ -35,6 +35,15 @@ public:
         // 在ensure_jump() 函数中，除了检测
         // 所以，State::m_hash_value 应该保存的是"上一跳index"+"路径"，而不是
         // hash值——因为，我已经假设，发生了冲突！
+        //
+        // NOTE unordered_map<> 是通过内部key_type::operator==(const key_type&) const 来避免冲突的；
+        // ——即，同slot，多值的情况，通过operator== 来判断；
+        //
+        // 我这里，std::pair<> 默认已经提供了 operator==() const 函数了；
+        //
+        // 另外，与之对比，std::map<> 需要key_type::operator<() const 函数。为什么？
+        // 这是因为std::map<>内部是基于 rb-tree 的"有序"结构，必须区分大小关系；
+        // 而 unordered_map<>，是基于hash杂凑，是无序的的存放方式；
         size_t                       m_prev_index;
         char                         m_prev_path;
         size_t                       m_jump_cnt; // 距S0，多少条边的路径？
