@@ -3,6 +3,10 @@
 
 #include <cstdlib>
 #include <memory>
+#include <cassert>
+#include <cstddef>
+#include <iterator>
+#include <utility>
 
 /**
  * @brief FIFO 循环队列；
@@ -120,98 +124,93 @@ public:
     friend class iterator;
     friend class const_iterator;
 
-    class iterator
+    // NOTE 模板风格Iterator参考自
+    //! http://codereview.stackexchange.com/questions/74609/custom-iterator-for-a-linked-list-class
+    template
+    <
+        typename Type,
+        typename UnqualifiedType = std::remove_cv<Type>
+    >
+    class InnerIterator
+        : public std::iterator<std::bidirectional_iterator_tag,
+                               UnqualifiedType,
+                               std::ptrdiff_t,
+                               Type*,
+                               Type&>
     {
+    private:
+        TCircleBuffer<UnqualifiedType>* m_cb;
+        size_t                          m_idx;
+
     public:
-        explicit iterator(TCircleBuffer<T>& cb, bool is_end = false)
-            : m_cb(&cb), m_idx(is_end ? cb.m_write_index : cb.m_read_index)
-            {
-            }
-        ~iterator()
+        InnerIterator()
+            : m_cb(nullptr), m_idx(0)
+        {}
+        InnerIterator(TCircleBuffer<UnqualifiedType>* cb, bool is_end = false)
+            : m_cb(cb), m_idx(is_end ? cb->m_write_index : cb->m_read_index)
         {
         }
 
-        T& operator*() const
+        InnerIterator(TCircleBuffer<UnqualifiedType>* cb, size_t idx, bool /*dumy*/)
+            : m_cb(cb), m_idx(idx)
         {
-            return m_cb->m_buffer[m_idx];
         }
-        T* operator->() const
+        ~InnerIterator()
         {
-            return m_cb->m_buffer + m_idx;
         }
 
-        iterator& operator++()
+        void swap(InnerIterator& ref) noexcept
         {
+            std::swap(m_cb, ref.m_cb);
+            std::swap(m_idx, ref.m_idx);
+        }
+
+        InnerIterator& operator++()
+        {
+            assert(m_cb != nullptr && "nullptr");
             m_idx = m_cb->shift_index(m_idx);
             return *this;
         }
 
-        iterator operator++(int)
+        InnerIterator& operator++(int)
         {
-            iterator tmp = *this;
+            assert(m_cb != nullptr && "nullptr");
+            InnerIterator tmp = *this;
             m_idx = m_cb->shift_index(m_idx);
             return tmp;
         }
 
-        bool operator == (const iterator& rhs) const {
-            return this->m_cb == rhs.m_cb && this->m_idx == rhs.m_idx;
-        }
-
-        bool operator != (const iterator& rhs) const {
-            return !(this->operator==(rhs));
-        }
-
-
-    private:
-        TCircleBuffer<T> * m_cb;
-        size_t             m_idx;
-    };
-
-    class const_iterator
-    {
-    public:
-        explicit const_iterator(const TCircleBuffer<T>& cb, bool is_end = false)
-            : m_cb(&cb), m_idx(is_end ? cb.m_write_index : cb.m_read_index)
+        template<typename OtherType>
+            bool operator == (const InnerIterator<OtherType>& rhs)
             {
+                return this->m_cb == rhs.m_cb && this->m_idx == rhs.m_idx;
             }
-        ~const_iterator()
-        {
-        }
+        template<typename OtherType>
+            bool operator != (const InnerIterator<OtherType>& rhs)
+            {
+                return this->m_cb != rhs.m_cb || this->m_idx != rhs.m_idx;
+            }
 
-        const T& operator*() const
+        Type& operator* () const
         {
+            assert(m_cb != nullptr && "nullptr");
             return m_cb->m_buffer[m_idx];
         }
-        const T* operator->() const
+
+        Type* operator->() const
         {
+            assert(m_cb != nullptr && "nullptr");
             return m_cb->m_buffer + m_idx;
         }
 
-        const_iterator& operator++()
+        operator InnerIterator<const Type>() const
         {
-            m_idx = m_cb->shift_index(m_idx);
-            return *this;
+            return InnerIterator<const Type>(m_cb, m_idx, true);
         }
-
-        const_iterator operator++(int)
-        {
-            const_iterator tmp = *this;
-            m_idx = m_cb->shift_index(m_idx);
-            return tmp;
-        }
-
-        bool operator == (const const_iterator& rhs) const {
-            return this->m_cb == rhs.m_cb && this->m_idx == rhs.m_idx;
-        }
-
-        bool operator != (const const_iterator& rhs) const {
-            return !(this->operator==(rhs));
-        }
-
-    private:
-        const TCircleBuffer<T> * m_cb;
-        size_t             m_idx;
     };
+
+    typedef InnerIterator<T> iterator;
+    typedef InnerIterator<const T> const_iterator;
 
     iterator begin()
     {
