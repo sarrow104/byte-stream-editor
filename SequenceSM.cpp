@@ -36,10 +36,11 @@ size_t SequenceSM::ensure_jump(size_t from, char input, const std::function<std:
         << std::endl;
 #endif
     if (next_st) {
-        if (this->m_statuss[next_st].m_prev_index != from || this->m_statuss[next_st].m_prev_path != input) {
-            SSS_POSTION_THROW(std::runtime_error,
-                              "collapse");
-        }
+        // NOTE no need to collapse checking!
+        // if (this->m_statuss[next_st].m_prev_index != from || this->m_statuss[next_st].m_prev_path != input) {
+        //     SSS_POSTION_THROW(std::runtime_error,
+        //                       "collapse");
+        // }
         return next_st;
     }
     size_t current_jump_cnt = m_statuss[from].m_jump_cnt + 1; 
